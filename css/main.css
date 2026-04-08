@@ -25,7 +25,6 @@ body {
   align-items: flex-end;
   justify-content: center;
   padding: 2rem clamp(2rem, 6vw, 5.5rem);
-  background: radial-gradient(circle at top, rgba(255,255,255,0.1), transparent 30%), linear-gradient(180deg, #070707 0%, #111 100%);
   text-align: right;
   background-image: url(../img/start.jpg);
   background-size: 100%;
@@ -80,7 +79,7 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.42) 28%, rgba(0, 0, 0, 0) 62%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.52) 28%, rgba(0, 0, 0, 0) 62%);
 }
 
 #scene {
