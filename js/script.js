@@ -14,7 +14,7 @@ const story = {
   "scene_12": { text: "Take a 30 minute nap.", character: "Narrator", options: [{ text: "Next", nextId: "scene_13" }] },
   "scene_13": { text: "Ignore sleepiness and stay awake.", character: "Narrator", options: [{ text: "Next", nextId: "scene_14" }] },
   "scene_14": { text: "It's all quiet and dark, it's like perfect for sleeping. Man, are you sure you don't want to take a nap?", character: "Narrator", options: [{ text: "Yes", nextId: "scene_19" }, { text: "Nah", nextId: "scene_15" }], },
-  "scene_15": { text: "Black screen..", character: "Narrator", options: [{ text: "Next", nextId: "scene_18" }] },
+  "scene_15": { text: "You're sleeping as good, as never before..", character: "Narrator", options: [{ text: "Next", nextId: "scene_18" }] },
   "scene_16": { text: "yes", character: "Narrator", options: [{ text: "Next", nextId: "scene_17" }] },
   "scene_17": { text: "nah", character: "Narrator", options: [{ text: "Next", nextId: "scene_18" }] },
   "scene_18": { text: "You wake up 3 hours later", character: "Narrator", options: [{ text: "Next", nextId: "scene_20" }] },
@@ -59,6 +59,8 @@ let typewriterTimeoutId = null;
 let typewriterRunId = 0;
 let autoAdvanceTimeoutId = null;
 let autoAdvanceAnimationId = null;
+const scenePngIds = new Set([15, 16, 17, 27, 30, 31, 35, 36]);
+const sceneImageCache = [];
 const backgroundMusic = new Audio('./audio/bgmusic.mp3');
 backgroundMusic.loop = true;
 backgroundMusic.preload = 'auto';
@@ -178,6 +180,42 @@ function typeWriterText(element, text, onDone) {
   typeNext(0);
 }
 
+function getSceneBackground(sceneId) {
+  const sceneNumber = Number(sceneId.replace('scene_', ''));
+
+  if (Number.isNaN(sceneNumber)) {
+    return null;
+  }
+
+  const extension = scenePngIds.has(sceneNumber) ? 'png' : 'jpg';
+  return `./scenes/${sceneNumber}.${extension}`;
+}
+
+function preloadSceneImages() {
+  const backgroundUrls = Array.from(new Set(
+    Object.keys(story)
+      .map((sceneId) => getSceneBackground(sceneId))
+      .filter(Boolean)
+  ));
+
+  const preloadJobs = backgroundUrls.map((url) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+
+      img.onload = resolve;
+      img.onerror = resolve;
+      img.src = url;
+
+      // Keep references so already-loaded images stay warm in memory.
+      sceneImageCache.push(img);
+    });
+  });
+
+  return Promise.all(preloadJobs);
+}
+
+const sceneImagesPreloadPromise = preloadSceneImages();
+
 function startScene() {
   clearAutoAdvance();
 
@@ -212,10 +250,14 @@ function startScene() {
   optionsWrap.style.opacity = '0';
   optionsWrap.style.pointerEvents = 'none';
 
-  if (scene.background) {
-    container.style.backgroundImage = `url(${scene.background})`;
+  const sceneBackground = getSceneBackground(currentSceneId);
+  if (sceneBackground) {
+    container.style.backgroundImage = `url(${sceneBackground})`;
+    container.style.backgroundSize = 'cover';
+    container.style.backgroundPosition = 'center';
+    container.style.backgroundRepeat = 'no-repeat';
   } else {
-    container.style.backgroundImage = "none";
+    container.style.backgroundImage = 'none';
   }
 
   scene.options.forEach(option => {
@@ -250,7 +292,13 @@ const playButton = document.getElementById('play-button');
 
 playButton.addEventListener('click', () => {
   startBackgroundMusic();
-  startScreen.style.display = 'none';
-  game.style.display = 'block';
-  startScene();
+
+  playButton.disabled = true;
+  playButton.textContent = 'LOADING...';
+
+  sceneImagesPreloadPromise.finally(() => {
+    startScreen.style.display = 'none';
+    game.style.display = 'block';
+    startScene();
+  });
 });
